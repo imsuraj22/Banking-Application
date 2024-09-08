@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { ID } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "../appwrite";
 import { parseStringify } from "../utils";
+import { plaidClient } from "../plaid";
+import {Products,CountryCode} from 'plaid'
 
 export const signIn=async({email,password}:signInProps)=>{
     try {
@@ -67,3 +69,43 @@ export async function getLoggedInUser() {
     }
   }
   
+  export const createLinkToken=async (user:User)=>{
+    try {
+      const tokenParams={
+        user:{
+          client_user_id:user.$id
+        },
+        client_name:user.name,
+        products:['auth'] as Products[],
+        language:'en',
+        country_codes:['US'] as CountryCode[],
+      }
+
+      const response=await plaidClient.linkTokenCreate(tokenParams);
+
+      return parseStringify({linkToken:response.data.link_token});
+    } catch (error) {
+      console.log(error);
+      
+    }
+  }
+
+  export const exchangePublicToken = async({
+    publicToken,user }:exchangePublicTokenProps)=>{
+      try {
+        const response=await plaidClient.
+        itemPublicTokenExchange({
+          public_token:publicToken,
+        });
+        const accessToken=response.data.access_token;
+        const itemId=response.data.item_id;
+
+        const accountResponse=await plaidClient.accountsGet({
+          access_token:accessToken,
+        });
+      } catch (error) {
+        console.log("An error occured while creating exchanging token : ",error);
+        
+      }
+    }
+
